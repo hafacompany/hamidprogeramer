@@ -23,7 +23,7 @@ export default {
 		trackRequest(env, ctx);
 		await DbService.ensureSchema(env.DB);
 		const url = new URL(request.url);
-		if (Router.isWebSocketUpgrade(request) && url.pathname === "/In_Panel_Rayeghan_Ast_Va_Gheyre_Ghabele_Foroosh") {
+		if (Router.isWebSocketUpgrade(request) && url.pathname === "/hafa") {
 			return await Router.handleWebSocket(request, env, ctx);
 		}
 		if (Router.isSubscriptionPath(url.pathname)) {
@@ -198,7 +198,7 @@ const Router = {
 			}
 			try {
 				const cfRes = await fetch("https://api.cloudflare.com/client/v4/user/tokens/verify", {
-					headers: { Authorization: "Bearer " + api_token },
+					headers: { "Authorization": "Bearer " + api_token }
 				});
 				const cfData = await cfRes.json();
 				if (!cfRes.ok || !cfData.success) {
@@ -213,13 +213,13 @@ const Router = {
 					const parts = host.split(".");
 					const targetSubdomain = parts[parts.length - 3];
 					const accountsRes = await fetch("https://api.cloudflare.com/client/v4/accounts", {
-						headers: { Authorization: "Bearer " + api_token },
+						headers: { "Authorization": "Bearer " + api_token }
 					});
 					const accountsData = await accountsRes.json();
 					if (accountsData.success && accountsData.result) {
 						for (const acc of accountsData.result) {
 							const subRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${acc.id}/workers/subdomain`, {
-								headers: { Authorization: "Bearer " + api_token },
+								headers: { "Authorization": "Bearer " + api_token }
 							});
 							const subData = await subRes.json();
 							if (subData.success && subData.result && subData.result.subdomain === targetSubdomain) {
@@ -230,7 +230,7 @@ const Router = {
 					}
 				} else {
 					const zonesRes = await fetch("https://api.cloudflare.com/client/v4/zones", {
-						headers: { Authorization: "Bearer " + api_token },
+						headers: { "Authorization": "Bearer " + api_token }
 					});
 					const zonesData = await zonesRes.json();
 					if (zonesData.success && zonesData.result) {
@@ -279,14 +279,14 @@ const Router = {
 			try {
 				if (!currentAccountId) {
 					const accRes = await fetch("https://api.cloudflare.com/client/v4/accounts", {
-						headers: { Authorization: "Bearer " + currentToken },
+						headers: { "Authorization": "Bearer " + currentToken }
 					});
 					const accData = await accRes.json();
 					if (!accData.success || accData.result.length === 0) throw new Error("توکن نامعتبر است یا اکانتی یافت نشد.");
 					currentAccountId = accData.result[0].id;
 				}
 
-				const githubRes = await fetch("https://raw.githubusercontent.com/IR-NETLIFY/zeus/refs/heads/main/zeus.js?t=" + Date.now() + Math.random(), {
+				const githubRes = await fetch("https://raw.githubusercontent.com/hafacompany/hafaze/main/zeus.js?t=" + Date.now() + Math.random(), {
 					headers: {
 						"Cache-Control": "no-cache, no-store, must-revalidate",
 						Pragma: "no-cache",
@@ -314,10 +314,10 @@ const Router = {
 					}
 				}
 
-				if (!newBindings.some((b) => b.name === "CF_API_TOKEN")) {
+				if (!newBindings.some(b => b.name === "CF_API_TOKEN")) {
 					newBindings.push({ type: "secret_text", name: "CF_API_TOKEN", text: currentToken });
 				}
-				if (!newBindings.some((b) => b.name === "CF_ACCOUNT_ID")) {
+				if (!newBindings.some(b => b.name === "CF_ACCOUNT_ID")) {
 					newBindings.push({ type: "secret_text", name: "CF_ACCOUNT_ID", text: currentAccountId });
 				}
 
@@ -354,7 +354,7 @@ const Router = {
 			}
 
 			try {
-				const githubRes = await fetch("https://raw.githubusercontent.com/IR-NETLIFY/zeus/refs/heads/main/zeus.js?t=" + Date.now(), {
+				const githubRes = await fetch("https://raw.githubusercontent.com/hafacompany/hafaze/main/zeus.js?t=" + Date.now(), {
 					headers: {
 						"Cache-Control": "no-cache, no-store, must-revalidate",
 						Pragma: "no-cache",
@@ -450,18 +450,24 @@ const Router = {
 		}
 		if (url.pathname === "/api/proxy-ip") {
 			if (request.method === "POST") {
-				const { proxy_ip, iata } = await request.json();
+				const { proxy_ip, iata, frag_len, frag_int } = await request.json();
 				if (proxy_ip) await env.DB.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('proxy_ip', ?)").bind(proxy_ip).run();
 				if (iata !== undefined) await env.DB.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('proxy_location_iata', ?)").bind(iata).run();
+				if (frag_len !== undefined) await env.DB.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('frag_len', ?)").bind(frag_len).run();
+				if (frag_int !== undefined) await env.DB.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('frag_int', ?)").bind(frag_int).run();
 				return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } });
 			}
 			if (request.method === "GET") {
 				const rowIp = await env.DB.prepare("SELECT value FROM settings WHERE key = 'proxy_ip'").first();
 				const rowIata = await env.DB.prepare("SELECT value FROM settings WHERE key = 'proxy_location_iata'").first();
+				const rowLen = await env.DB.prepare("SELECT value FROM settings WHERE key = 'frag_len'").first();
+				const rowInt = await env.DB.prepare("SELECT value FROM settings WHERE key = 'frag_int'").first();
 				return new Response(
 					JSON.stringify({
 						proxy_ip: rowIp ? rowIp.value : "proxyip.cmliussss.net",
 						iata: rowIata ? rowIata.value : "",
+						frag_len: rowLen ? rowLen.value : "20-30",
+						frag_int: rowInt ? rowInt.value : "1-2",
 					}),
 					{ headers: { "Content-Type": "application/json" } },
 				);
@@ -489,7 +495,7 @@ const Router = {
 						}
 						return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } });
 					} else {
-						const { username: new_username, limit_gb, expiry_days, limit_req, ips, tls, port, fingerprint, ip_limit, block_porn, block_ads, frag_len, frag_int } = body;
+						const { username: new_username, limit_gb, expiry_days, limit_req, ips, tls, port, fingerprint, ip_limit } = body;
 						if (new_username && new_username !== username) {
 							const existing = await env.DB.prepare("SELECT id FROM users WHERE username = ?").bind(new_username).first();
 							if (existing) {
@@ -512,8 +518,8 @@ const Router = {
 								GLOBAL_LAST_ACTIVE_WRITE.delete(username);
 							}
 						}
-						await env.DB.prepare("UPDATE users SET username = ?, limit_gb = ?, expiry_days = ?, limit_req = ?, ips = ?, tls = ?, port = ?, fingerprint = ?, max_connections = ?, ip_limit = ?, block_porn = ?, block_ads = ?, frag_len = ?, frag_int = ? WHERE username = ?")
-							.bind(new_username || username, limit_gb ? parseFloat(limit_gb) : null, expiry_days ? parseInt(expiry_days) : null, limit_req ? parseInt(limit_req) : null, ips || null, tls, port, fingerprint || "chrome", ip_limit ? parseInt(ip_limit) : null, ip_limit ? parseInt(ip_limit) : null, block_porn ? 1 : 0, block_ads ? 1 : 0, frag_len !== undefined ? frag_len : "20-30", frag_int !== undefined ? frag_int : "1-2", username)
+						await env.DB.prepare("UPDATE users SET username = ?, limit_gb = ?, expiry_days = ?, limit_req = ?, ips = ?, tls = ?, port = ?, fingerprint = ?, max_connections = ?, ip_limit = ? WHERE username = ?")
+							.bind(new_username || username, limit_gb ? parseFloat(limit_gb) : null, expiry_days ? parseInt(expiry_days) : null, limit_req ? parseInt(limit_req) : null, ips || null, tls, port, fingerprint || "chrome", ip_limit ? parseInt(ip_limit) : null, ip_limit ? parseInt(ip_limit) : null, username)
 							.run();
 						return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } });
 					}
@@ -574,7 +580,7 @@ const Router = {
 					);
 				}
 				if (request.method === "POST") {
-					const { username, uuid, limit_gb, expiry_days, limit_req, ips, tls, port, fingerprint, ip_limit, used_gb, used_req, created_at, is_active, block_porn, block_ads, frag_len, frag_int } = await request.json();
+					const { username, uuid, limit_gb, expiry_days, limit_req, ips, tls, port, fingerprint, ip_limit, used_gb, used_req, created_at, is_active } = await request.json();
 					if (!username) {
 						return new Response(JSON.stringify({ error: "نام کاربری اجباری است" }), { status: 400, headers: { "Content-Type": "application/json" } });
 					}
@@ -587,8 +593,8 @@ const Router = {
 					const parsedIsActive = parseInt(is_active);
 					const finalIsActive = !isNaN(parsedIsActive) ? parsedIsActive : 1;
 					try {
-						await env.DB.prepare("INSERT INTO users (username, uuid, limit_gb, expiry_days, limit_req, ips, connection_type, tls, port, fingerprint, max_connections, ip_limit, used_gb, used_req, created_at, is_active, block_porn, block_ads, frag_len, frag_int) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-							.bind(username, finalUuid, limit_gb ? parseFloat(limit_gb) : null, expiry_days ? parseInt(expiry_days) : null, limit_req ? parseInt(limit_req) : null, ips || null, atob("dmxlc3M="), tls, port, fingerprint || "chrome", ip_limit ? parseInt(ip_limit) : null, ip_limit ? parseInt(ip_limit) : null, finalUsedGb, finalUsedReq, finalCreatedAt, finalIsActive, block_porn ? 1 : 0, block_ads ? 1 : 0, frag_len !== undefined ? frag_len : "20-30", frag_int !== undefined ? frag_int : "1-2")
+						await env.DB.prepare("INSERT INTO users (username, uuid, limit_gb, expiry_days, limit_req, ips, connection_type, tls, port, fingerprint, max_connections, ip_limit, used_gb, used_req, created_at, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+							.bind(username, finalUuid, limit_gb ? parseFloat(limit_gb) : null, expiry_days ? parseInt(expiry_days) : null, limit_req ? parseInt(limit_req) : null, ips || null, atob("dmxlc3M="), tls, port, fingerprint || "chrome", ip_limit ? parseInt(ip_limit) : null, ip_limit ? parseInt(ip_limit) : null, finalUsedGb, finalUsedReq, finalCreatedAt, finalIsActive)
 							.run();
 						return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } });
 					} catch (err) {
@@ -658,18 +664,6 @@ const DbService = {
 		try {
 			await db.prepare("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)").run();
 		} catch (e) {}
-		try {
-			await db.prepare("ALTER TABLE users ADD COLUMN block_porn INTEGER DEFAULT 0").run();
-		} catch (e) {}
-		try {
-			await db.prepare("ALTER TABLE users ADD COLUMN block_ads INTEGER DEFAULT 0").run();
-		} catch (e) {}
-		try {
-			await db.prepare("ALTER TABLE users ADD COLUMN frag_len TEXT DEFAULT '20-30'").run();
-		} catch (e) {}
-		try {
-			await db.prepare("ALTER TABLE users ADD COLUMN frag_int TEXT DEFAULT '1-2'").run();
-		} catch (e) {}
 		schemaEnsured = true;
 	},
 	async getPanelPassword(db) {
@@ -709,7 +703,7 @@ function getActiveIpCount(activeIpsJson) {
 		const now = Date.now();
 		let count = 0;
 		for (const [ip, data] of Object.entries(activeIps)) {
-			const lastSeen = data && typeof data === "object" ? data.timestamp : data;
+			const lastSeen = (data && typeof data === 'object') ? data.timestamp : data;
 			if (now - lastSeen <= 30000) {
 				count++;
 			}
@@ -735,10 +729,6 @@ const SubscriptionService = {
 			.filter((p) => p.length > 0);
 		const fp = user.fingerprint || "chrome";
 		const links = [];
-		const m1 = decodeURIComponent("%E2%9A%A0%EF%B8%8F%D9%BE%D9%86%D9%84%20%D8%B1%D8%A7%DB%8C%DA%AF%D8%A7%D9%86%20%D9%88%20%D8%BA%DB%8C%D8%B1%20%D9%82%D8%A7%D8%A8%D9%84%20%D9%81%D8%B1%D9%88%D8%B4%E2%9A%A0%EF%B8%8F");
-		const m2 = decodeURIComponent("%F0%9F%9A%80%40IR_NETLIFY%20%D8%B3%D8%A7%D8%AE%D8%AA%20%D8%B1%D8%A7%DB%8C%DA%AF%D8%A7%D9%86%F0%9F%9A%80");
-		links.push(atob("dmxlc3M6Ly8=") + user.uuid + "@0.0.0.0:1?encryption=none&security=none&type=ws&host=" + host + "&path=%2FIn_Panel_Rayeghan_Ast_Va_Gheyre_Ghabele_Foroosh#" + encodeURIComponent(m1));
-		links.push(atob("dmxlc3M6Ly8=") + user.uuid + "@0.0.0.0:1?encryption=none&security=none&type=ws&host=" + host + "&path=%2FIn_Panel_Rayeghan_Ast_Va_Gheyre_Ghabele_Foroosh#" + encodeURIComponent(m2));
 		let remVol = "Unlimited";
 		if (user.limit_gb) {
 			let rem = user.limit_gb - (user.used_gb || 0);
@@ -756,15 +746,14 @@ const SubscriptionService = {
 			let rem = user.limit_req - (user.used_req || 0);
 			remReq = rem > 0 ? rem.toLocaleString() + "Req" : "0Req";
 		}
-		const infoRemark = "📊 remaining | \u200E" + remVol + " | \u200E" + remTime + " | \u200E" + remReq;
-		links.push(atob("dmxlc3M6Ly8=") + user.uuid + "@" + host + ":80?path=%2FIn_Panel_Rayeghan_Ast_Va_Gheyre_Ghabele_Foroosh&security=none&encryption=none&host=" + host + "&fp=" + fp + "&type=ws#" + encodeURIComponent(infoRemark));
+		// const infoRemark = "📊 remaining | ‎" + remVol + " | ‎" + remTime + " | ‎" + remReq;
+		// links.push(atob("dmxlc3M6Ly8=") + user.uuid + "@" + host + ":80?path=%2Fhafa&security=none&encryption=none&host=" + host + "&fp=" + fp + "&type=ws#" + encodeURIComponent(infoRemark));
 		ips.forEach((ip) => {
 			ports.forEach((portStr) => {
 				const isTlsPort = ["443", "2053", "2083", "2087", "2096", "8443"].includes(portStr);
 				const tlsVal = isTlsPort ? "tls" : "none";
-				const userFrag = user.frag_len && user.frag_int ? "&fragment=" + user.frag_len + "," + user.frag_int : "";
-				const remark = user.username + " | \u200E" + ip + " | \u200E" + portStr;
-				links.push(atob("dmxlc3M6Ly8=") + user.uuid + "@" + ip + ":" + portStr + "?path=%2FIn_Panel_Rayeghan_Ast_Va_Gheyre_Ghabele_Foroosh&security=" + tlsVal + "&encryption=none&insecure=0&host=" + host + "&fp=" + fp + "&type=ws&allowInsecure=0&sni=" + host + userFrag + "#" + encodeURIComponent(remark));
+				const remark = user.username;
+				links.push(atob("dmxlc3M6Ly8=") + user.uuid + "@" + ip + ":" + portStr + "?path=%2Fhafa&security=" + tlsVal + "&encryption=none&insecure=0&host=" + host + "&fp=" + fp + "&alpn=h3%2Ch2%2Chttp%2F1.1&type=ws&allowInsecure=0&sni=" + host + "#" + encodeURIComponent(remark));
 			});
 		});
 		const noise = ["# System Update Feed: OK", "# Sync Code: " + Math.random().toString(36).slice(2, 10), "# Version: 2.10.1", "# Description: Secure Node Configurations", ""].join("\n");
@@ -812,7 +801,7 @@ async function flushExpiredTraffic(env) {
 	}
 }
 async function handleVLESS(env, storedData = null, ctx = null, request = null) {
-	const clientIP = request ? request.headers.get("CF-Connecting-IP") || "unknown" : "unknown";
+	const clientIP = request ? (request.headers.get("CF-Connecting-IP") || "unknown") : "unknown";
 	const socketPair = new WebSocketPair();
 	const [clientSock, serverSock] = Object.values(socketPair);
 	serverSock.accept();
@@ -821,8 +810,6 @@ async function handleVLESS(env, storedData = null, ctx = null, request = null) {
 	let tickCount = 0;
 	let validUUID = null;
 	let userIpLimit = null;
-	let targetDns = "8.8.4.4";
-	let targetDoh = "https://cloudflare-dns.com/dns-query";
 	function addBytes(bytes) {
 		if (bytes <= 0) return;
 		if (!username) {
@@ -877,9 +864,9 @@ async function handleVLESS(env, storedData = null, ctx = null, request = null) {
 					const user = await env.DB.prepare("SELECT active_ips FROM users WHERE uuid = ?").bind(validUUID).first();
 					if (user) {
 						console.log(`[setOffline Task] DB active_ips for ${uname}: ${user.active_ips}`);
-						let activeIps = JSON.parse(user.active_ips || "{}");
+						let activeIps = JSON.parse(user.active_ips || '{}');
 						if (activeIps[clientIP]) {
-							if (typeof activeIps[clientIP] === "object") {
+							if (typeof activeIps[clientIP] === 'object') {
 								activeIps[clientIP].count = (activeIps[clientIP].count || 1) - 1;
 								if (activeIps[clientIP].count <= 0) {
 									delete activeIps[clientIP];
@@ -887,7 +874,8 @@ async function handleVLESS(env, storedData = null, ctx = null, request = null) {
 							} else {
 								delete activeIps[clientIP];
 							}
-							await env.DB.prepare("UPDATE users SET active_ips = ? WHERE uuid = ?").bind(JSON.stringify(activeIps), validUUID).run();
+							await env.DB.prepare("UPDATE users SET active_ips = ? WHERE uuid = ?")
+								.bind(JSON.stringify(activeIps), validUUID).run();
 							console.log(`[setOffline Task] Updated active_ips in DB to: ${JSON.stringify(activeIps)}`);
 						} else {
 							console.log(`[setOffline Task] IP ${clientIP} not found in user's active_ips`);
@@ -970,12 +958,12 @@ async function handleVLESS(env, storedData = null, ctx = null, request = null) {
 						if (!isExpired && clientIP && clientIP !== "unknown") {
 							let activeIps = {};
 							try {
-								activeIps = JSON.parse(user.active_ips || "{}");
+								activeIps = JSON.parse(user.active_ips || '{}');
 							} catch (e) {}
 							const nowTime = Date.now();
 							let hasChanges = false;
 							for (const [ip, data] of Object.entries(activeIps)) {
-								const lastSeen = data && typeof data === "object" ? data.timestamp : data;
+								const lastSeen = (data && typeof data === 'object') ? data.timestamp : data;
 								if (nowTime - lastSeen > 30000) {
 									delete activeIps[ip];
 									hasChanges = true;
@@ -986,8 +974,8 @@ async function handleVLESS(env, storedData = null, ctx = null, request = null) {
 								console.log(`[Heartbeat] IP ${clientIP} expired from active_ips due to inactivity.`);
 							} else {
 								const sortedIps = Object.keys(activeIps).sort((a, b) => {
-									const tA = activeIps[a] && typeof activeIps[a] === "object" ? activeIps[a].timestamp : activeIps[a];
-									const tB = activeIps[b] && typeof activeIps[b] === "object" ? activeIps[b].timestamp : activeIps[b];
+									const tA = (activeIps[a] && typeof activeIps[a] === 'object') ? activeIps[a].timestamp : activeIps[a];
+									const tB = (activeIps[b] && typeof activeIps[b] === 'object') ? activeIps[b].timestamp : activeIps[b];
 									return tB - tA;
 								});
 								const clientIpIndex = sortedIps.indexOf(clientIP);
@@ -1087,7 +1075,7 @@ async function handleVLESS(env, storedData = null, ctx = null, request = null) {
 		const bytes = chunk.byteLength || 0;
 		await addBytes(bytes);
 		if (isDnsQuery) {
-			await forwardVlessUDP(chunk, serverSock, null, addBytes, targetDns);
+			await forwardVlessUDP(chunk, serverSock, null, addBytes);
 			return;
 		}
 		if (await writeToRemote(chunk)) return;
@@ -1132,33 +1120,23 @@ async function handleVLESS(env, storedData = null, ctx = null, request = null) {
 				}
 			}
 			userIpLimit = user.ip_limit;
-			if (user.block_porn === 1 && user.block_ads === 1) {
-				targetDns = "94.140.14.15";
-				targetDoh = "https://family.adguard-dns.com/dns-query";
-			} else if (user.block_porn === 1) {
-				targetDns = "1.1.1.3";
-				targetDoh = "https://family.cloudflare-dns.com/dns-query";
-			} else if (user.block_ads === 1) {
-				targetDns = "94.140.14.14";
-				targetDoh = "https://dns.adguard-dns.com/dns-query";
-			}
 			if (clientIP && clientIP !== "unknown") {
 				console.log(`[VLESS Handshake] User: ${user.username}, clientIP: ${clientIP}, active_ips in DB: ${user.active_ips}`);
 				let activeIps = {};
 				try {
-					activeIps = JSON.parse(user.active_ips || "{}");
+					activeIps = JSON.parse(user.active_ips || '{}');
 				} catch (e) {}
 				const now = Date.now();
 				for (const [ip, data] of Object.entries(activeIps)) {
-					const lastSeen = data && typeof data === "object" ? data.timestamp : data;
+					const lastSeen = (data && typeof data === 'object') ? data.timestamp : data;
 					if (now - lastSeen > 30000) {
 						delete activeIps[ip];
 					}
 				}
 				if (!activeIps[clientIP]) {
 					const sortedIps = Object.keys(activeIps).sort((a, b) => {
-						const tA = activeIps[a] && typeof activeIps[a] === "object" ? activeIps[a].timestamp : activeIps[a];
-						const tB = activeIps[b] && typeof activeIps[b] === "object" ? activeIps[b].timestamp : activeIps[b];
+						const tA = (activeIps[a] && typeof activeIps[a] === 'object') ? activeIps[a].timestamp : activeIps[a];
+						const tB = (activeIps[b] && typeof activeIps[b] === 'object') ? activeIps[b].timestamp : activeIps[b];
 						return tB - tA;
 					});
 					console.log(`[VLESS Handshake] Non-expired active IPs: ${JSON.stringify(activeIps)}, count: ${sortedIps.length}, limit: ${user.ip_limit}`);
@@ -1169,7 +1147,7 @@ async function handleVLESS(env, storedData = null, ctx = null, request = null) {
 					}
 					activeIps[clientIP] = { timestamp: now, count: 1 };
 				} else {
-					if (typeof activeIps[clientIP] === "object") {
+					if (typeof activeIps[clientIP] === 'object') {
 						activeIps[clientIP].timestamp = now;
 						activeIps[clientIP].count = (activeIps[clientIP].count || 0) + 1;
 					} else {
@@ -1178,7 +1156,8 @@ async function handleVLESS(env, storedData = null, ctx = null, request = null) {
 					console.log(`[VLESS Handshake] Reconnected from same IP: ${clientIP}, count: ${activeIps[clientIP].count}`);
 				}
 				try {
-					await env.DB.prepare("UPDATE users SET active_ips = ?, last_active = ? WHERE uuid = ?").bind(JSON.stringify(activeIps), now, reqUUID).run();
+					await env.DB.prepare("UPDATE users SET active_ips = ?, last_active = ? WHERE uuid = ?")
+						.bind(JSON.stringify(activeIps), now, reqUUID).run();
 					console.log(`[VLESS Handshake] Successfully updated active_ips to: ${JSON.stringify(activeIps)}`);
 				} catch (e) {
 					console.error(`[VLESS Handshake] DB Update Error: ${e.message}`);
@@ -1225,7 +1204,7 @@ async function handleVLESS(env, storedData = null, ctx = null, request = null) {
 				if (cmd === 2) {
 					if (port === 53) {
 						isDnsQuery = true;
-						await forwardVlessUDP(rawData, serverSock, respHeader, addBytes, targetDns);
+						await forwardVlessUDP(rawData, serverSock, respHeader, addBytes);
 					} else {
 						serverSock.close();
 					}
@@ -1239,10 +1218,10 @@ async function handleVLESS(env, storedData = null, ctx = null, request = null) {
 					const task = (async () => {
 						let s = null;
 						try {
-							s = await connectDirect(addr, port, dataPayload, targetDoh);
+							s = await connectDirect(addr, port, dataPayload);
 						} catch (err) {
 							if (useFallback && proxyIP) {
-								s = await connectDirect(proxyIP, port, dataPayload, targetDoh);
+								s = await connectDirect(proxyIP, port, dataPayload);
 							} else {
 								throw err;
 							}
@@ -1394,8 +1373,8 @@ function closeSocketQuietly(socket) {
 		}
 	} catch (e) {}
 }
-async function dohQuery(domain, recordType, targetDoh = DOH_RESOLVER) {
-	const cacheKey = `${domain}:${recordType}:${targetDoh}`;
+async function dohQuery(domain, recordType) {
+	const cacheKey = `${domain}:${recordType}`;
 	if (DNS_CACHE.has(cacheKey)) {
 		const cached = DNS_CACHE.get(cacheKey);
 		if (Date.now() < cached.expires) return cached.data;
@@ -1423,7 +1402,7 @@ async function dohQuery(domain, recordType, targetDoh = DOH_RESOLVER) {
 		query.set(qname, 12);
 		qview.setUint16(12 + qname.length, qtype);
 		qview.setUint16(12 + qname.length + 2, 1);
-		const response = await fetch(targetDoh, {
+		const response = await fetch(DOH_RESOLVER, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/dns-message",
@@ -1837,9 +1816,9 @@ async function connectStreams(remoteSocket, webSocket, headerData, retryFunc, on
 	}
 	if (!hasData && retryFunc) await retryFunc();
 }
-async function buildRaceCandidates(address, port, targetDoh) {
+async function buildRaceCandidates(address, port) {
 	if (!PRELOAD_RACE_DIAL || isIPHostname(address)) return null;
-	const [aRecords, aaaaRecords] = await Promise.all([dohQuery(address, "A", targetDoh), dohQuery(address, "AAAA", targetDoh)]);
+	const [aRecords, aaaaRecords] = await Promise.all([dohQuery(address, "A"), dohQuery(address, "AAAA")]);
 	const ipv4List = [
 		...new Set(
 			aRecords.flatMap((r) => {
@@ -1859,8 +1838,8 @@ async function buildRaceCandidates(address, port, targetDoh) {
 	if (ipList.length === 0) return null;
 	return ipList.map((hostname, attempt) => ({ hostname, port, attempt, resolvedFrom: address }));
 }
-async function connectDirect(address, port, initialData = null, targetDoh = "https://cloudflare-dns.com/dns-query") {
-	const raceCandidates = await buildRaceCandidates(address, port, targetDoh);
+async function connectDirect(address, port, initialData = null) {
+	const raceCandidates = await buildRaceCandidates(address, port);
 	const candidates = raceCandidates || Array.from({ length: TCP_CONCURRENCY }, () => ({ hostname: address, port }));
 	const openConnection = async (host, prt) => {
 		const socket = connect({ hostname: host, port: prt });
@@ -1902,10 +1881,10 @@ async function connectDirect(address, port, initialData = null, targetDoh = "htt
 		}
 	}
 }
-async function forwardVlessUDP(udpChunk, webSocket, respHeader, onBytes, dnsServer = "8.8.4.4") {
+async function forwardVlessUDP(udpChunk, webSocket, respHeader, onBytes) {
 	const requestData = convertToUint8Array(udpChunk);
 	try {
-		const tcpSocket = connect({ hostname: dnsServer, port: 53 });
+		const tcpSocket = connect({ hostname: "8.8.4.4", port: 53 });
 		let vlessHeader = respHeader;
 		const writer = tcpSocket.writable.getWriter();
 		await writer.write(requestData);
@@ -2069,7 +2048,7 @@ const HTML_TEMPLATES = {
 </body>
 </html>`,
 
-	login: `<!DOCTYPE html>
+login: `<!DOCTYPE html>
 <html lang="fa" dir="rtl" class="dark">
 <head>
     <meta charset="UTF-8">
@@ -2188,7 +2167,7 @@ const HTML_TEMPLATES = {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZEUS Panel</title>
+    <title>♥HAFA♥</title>
     <script>
         const originalWarn = console.warn;
         console.warn = (...args) => {
@@ -2254,16 +2233,16 @@ const HTML_TEMPLATES = {
         <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="flex flex-row flex-wrap justify-center items-center gap-3 w-full md:w-auto">
                 <h1 class="text-lg font-bold flex items-center gap-2" dir="ltr">
-                    ZEUS Panel 
+                    ♥ HAFA PANEL ♥
                     <span id="panel-version" class="text-xs px-2 py-0.5 font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded-full">v1.5.10</span>
                 </h1>
                 <div class="flex items-center gap-3 bg-gray-100 dark:bg-zinc-800/60 px-3 py-1.5 rounded-full border border-gray-200 dark:border-zinc-800/80 shadow-sm flex-shrink-0 w-fit">
-                    <a href="https://github.com/IR-NETLIFY/zeus" target="_blank" rel="noopener noreferrer" class="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-all transform hover:scale-125 duration-200 flex-shrink-0" title="GitHub">
+                    <a href="https://www.yahoo.com" target="_blank" rel="noopener noreferrer" class="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-all transform hover:scale-125 duration-200 flex-shrink-0" title="GitHub">
                         <svg class="w-[22px] h-[22px] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
                         </svg>
                     </a>
-                    <a href="https://t.me/IR_NETLIFY" target="_blank" rel="noopener noreferrer" class="text-sky-500 hover:text-sky-600 dark:hover:text-sky-400 transition-all transform hover:scale-125 duration-200 flex-shrink-0" title="Telegram">
+                    <a href="https://www.google.com" target="_blank" rel="noopener noreferrer" class="text-sky-500 hover:text-sky-600 dark:hover:text-sky-400 transition-all transform hover:scale-125 duration-200 flex-shrink-0" title="Telegram">
                         <svg class="w-[22px] h-[22px] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.94-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.37.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .24z"/>
                         </svg>
@@ -2525,9 +2504,9 @@ const HTML_TEMPLATES = {
         <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-100 dark:bg-rose-900/30 text-rose-500 mb-4 shadow-inner">
             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
         </div>
-        <h3 class="font-black text-xl text-gray-900 dark:text-white mb-2">پیام همگانی</h3>
+        <h3 class="font-black text-xl text-gray-900 dark:text-white mb-2">به پنل حمید فاطی خوش آمدی</h3>
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-6 leading-relaxed font-medium">
-            این پنل کاملاً <span class="text-rose-500 font-bold">رایگان</span> است. هرگونه فروش پنل یا کانفیگ‌های آن مصداق بی ناموسی و بی شرفی است. لطفاً از این ابزار فقط به صورت شخصی و رایگان استفاده کنید.
+            این پنل متعلق به تیم <span class="text-rose-500 font-bold">HAFA</span> ♥ این پنلو فاطمه ساخته ♥
         </p>
         <button onclick="closeFreePanelWarning()" class="w-full py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-black rounded-xl text-sm transition duration-300 shadow-lg shadow-rose-500/25">
             تأیید و موافقت
@@ -2595,26 +2574,6 @@ const HTML_TEMPLATES = {
                         </div>
                     </div>
                 </div>
-<div class="mt-4 pt-4 border-t border-gray-100 dark:border-zinc-900">
-    <div class="flex items-center justify-between mb-3">
-        <span class="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">تنظیمات فرگمنت (Fragment)</span>
-        <label class="relative inline-flex items-center cursor-pointer select-none">
-            <input type="checkbox" id="input-frag-toggle" onchange="toggleFragInputs(this.checked)" class="sr-only peer">
-            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
-            <span class="mr-3 text-sm font-bold text-gray-700 dark:text-zinc-300">فعال‌سازی فرگمنت</span>
-        </label>
-    </div>
-    <div id="frag-inputs-container" class="grid grid-cols-2 gap-4 hidden transition-all duration-300 mt-3">
-        <div>
-            <label class="block text-[10px] sm:text-xs font-bold text-gray-500 dark:text-zinc-400 mb-2 uppercase tracking-wider">Fragment Length</label>
-            <input type="text" id="input-frag-len" placeholder="20-30" value="20-30" dir="ltr" class="w-full px-3 py-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm font-mono text-center text-gray-800 dark:text-zinc-100 transition">
-        </div>
-        <div>
-            <label class="block text-[10px] sm:text-xs font-bold text-gray-500 dark:text-zinc-400 mb-2 uppercase tracking-wider">Fragment Interval</label>
-            <input type="text" id="input-frag-int" placeholder="1-2" value="1-2" dir="ltr" class="w-full px-3 py-2.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm font-mono text-center text-gray-800 dark:text-zinc-100 transition">
-        </div>
-    </div>
-</div>
                 <div class="pt-2 border-t border-gray-100 dark:border-zinc-900">
                     <label class="block text-xs font-bold text-gray-500 dark:text-zinc-400 mb-3 uppercase tracking-wider">پورت‌های اتصال (انتخاب چندگانه)</label>
                     <div class="space-y-4">
@@ -2669,18 +2628,6 @@ const HTML_TEMPLATES = {
                             </div>
                         </div>
                     </div>
-						<div class="flex flex-row flex-wrap items-center justify-center gap-6 pt-4 border-t border-gray-100 dark:border-zinc-900 mt-4">
-    						<label class="relative inline-flex items-center cursor-pointer select-none">
-        						<input type="checkbox" id="input-block-porn" class="sr-only peer">
-        						<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
-        						<span class="mr-3 text-sm font-bold text-gray-700 dark:text-zinc-300">&#x645;&#x633;&#x62F;&#x648;&#x62F; &#x633;&#x627;&#x632;&#x6CC; &#x67E;&#x648;&#x631;&#x646;&#x648;&#x6AF;&#x631;&#x627;&#x641;&#x6CC;</span>
-    						</label>
-    						<label class="relative inline-flex items-center cursor-pointer select-none">
-        						<input type="checkbox" id="input-block-ads" class="sr-only peer">
-        						<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
-        						<span class="mr-3 text-sm font-bold text-gray-700 dark:text-zinc-300">&#x645;&#x633;&#x62F;&#x648;&#x62F; &#x633;&#x627;&#x632;&#x6CC; &#x62A;&#x628;&#x644;&#x6CC;&#x63A;&#x627;&#x62A;</span>
-    						</label>
-						</div>
                 </div>
                 <div class="pt-4 flex gap-3">
                     <button type="button" onclick="toggleModal(false)" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700/80 text-gray-700 dark:text-zinc-300 font-bold rounded-xl text-sm transition duration-200">انصراف</button>
@@ -2740,32 +2687,16 @@ const HTML_TEMPLATES = {
                         </div>
                     </div>
                 </div>
-				<div class="pt-4 border-t border-gray-100 dark:border-zinc-800">
-                    <label class="block text-sm font-medium mb-1.5 text-gray-700 dark:text-zinc-300">آی‌پی اختصاصی سرور مجازی (Custom VPS Proxy IP)</label>
-                    <div class="relative">
-                        <input type="text" id="custom-proxy-input" placeholder="45.130.125.10:2053" dir="ltr" class="w-full px-3 py-2.5 bg-white dark:bg-amoled-input border border-gray-300 dark:border-amoled-border rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-zinc-100 transition">
+                <div class="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100 dark:border-zinc-800">
+                    <div>
+                        <label class="block text-sm font-medium mb-1.5 text-gray-700 dark:text-zinc-300">Fragment Length</label>
+                        <input type="text" id="frag-length" placeholder="20-30" class="w-full px-3 py-2.5 bg-white dark:bg-amoled-input border border-gray-300 dark:border-amoled-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-center font-mono" dir="ltr">
                     </div>
-                    <p class="mt-1 text-[11px] text-gray-500 dark:text-zinc-400">حتماً آی‌پی یا دامنه را <strong class="text-orange-500">همراه با پورت</strong> وارد کنید .</p>
-                </div>
-                <div class="pt-4 border-t border-gray-100 dark:border-zinc-800">
-                    <label class="block text-sm font-medium mb-1.5 text-gray-700 dark:text-zinc-300">نرخ رفرش خودکار پنل</label>
-                    <div class="relative">
-                        <select id="refresh-rate-select" onchange="changeRefreshRate(this.value)" class="w-full pl-8 pr-3 py-2.5 bg-white dark:bg-amoled-input border border-gray-300 dark:border-amoled-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-zinc-200 cursor-pointer appearance-none">
-                            <option value="1000">۱ ثانیه</option>
-                            <option value="2000" selected>۲ ثانیه (پیش‌فرض)</option>
-                            <option value="5000">۵ ثانیه</option>
-                            <option value="10000">۱۰ ثانیه</option>
-                            <option value="30000">۳۰ ثانیه</option>
-                            <option value="60000">۱ دقیقه</option>
-                            <option value="300000">۵ دقیقه</option>
-                            <option value="600000">۱۰ دقیقه</option>
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500 dark:text-zinc-400">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1.5 text-gray-700 dark:text-zinc-300">Fragment Interval</label>
+                        <input type="text" id="frag-interval" placeholder="1-2" class="w-full px-3 py-2.5 bg-white dark:bg-amoled-input border border-gray-300 dark:border-amoled-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-center font-mono" dir="ltr">
                     </div>
                 </div>
-               
                 <div class="pt-4 border-t border-gray-100 dark:border-zinc-800">
                     <h4 class="text-sm font-bold mb-3 text-gray-800 dark:text-zinc-200">🔒 تغییر رمز عبور مدیریت</h4>
                     <div class="space-y-3">
@@ -2960,32 +2891,6 @@ const HTML_TEMPLATES = {
                             <input type="number" id="bulk-input-ip-limit" min="0" placeholder="بدون تغییر" class="w-full px-3 py-2 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm font-semibold text-gray-800 dark:text-zinc-100 placeholder-gray-400/80 transition">
                         </div>
                     </div>
-					<div class="flex flex-col gap-3 border border-gray-100 dark:border-zinc-900 p-3 rounded-xl bg-gray-50/20 dark:bg-zinc-900/10">
-						<div class="flex items-center justify-between">
-							<div class="flex items-center gap-3">
-								<label class="relative inline-flex items-center cursor-pointer select-none">
-									<input type="checkbox" id="bulk-apply-frag" onchange="toggleBulkFragContainer(this.checked)" class="sr-only peer">
-									<div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-								</label>
-								<span class="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">تنظیمات فرگمنت (Fragment)</span>
-							</div>
-							<label id="bulk-frag-toggle-wrapper" class="relative inline-flex items-center cursor-pointer select-none hidden">
-								<input type="checkbox" id="bulk-frag-enable-toggle" onchange="toggleBulkFragInputs(this.checked)" class="sr-only peer">
-								<div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
-								<span class="mr-2 text-xs font-bold text-gray-700 dark:text-zinc-300">فعال‌سازی برای همه</span>
-							</label>
-						</div>
-						<div id="bulk-frag-inputs-container" class="grid grid-cols-2 gap-2 hidden transition-all duration-300 pt-2 border-t border-gray-100 dark:border-zinc-800">
-							<div>
-								<label class="block text-[10px] font-bold text-gray-500 dark:text-zinc-400 mb-1 uppercase tracking-wider">Fragment Length</label>
-								<input type="text" id="bulk-input-frag-len" placeholder="20-30" value="20-30" class="w-full px-2 py-1.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-xs font-mono text-center text-gray-800 dark:text-zinc-100 transition" dir="ltr">
-							</div>
-							<div>
-								<label class="block text-[10px] font-bold text-gray-500 dark:text-zinc-400 mb-1 uppercase tracking-wider">Fragment Interval</label>
-								<input type="text" id="bulk-input-frag-int" placeholder="1-2" value="1-2" class="w-full px-2 py-1.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-xs font-mono text-center text-gray-800 dark:text-zinc-100 transition" dir="ltr">
-							</div>
-						</div>
-					</div>
                     <div class="flex items-center gap-3 border border-gray-100 dark:border-zinc-900 p-3 rounded-xl bg-gray-50/20 dark:bg-zinc-900/10">
                         <label class="relative inline-flex items-center cursor-pointer select-none">
                             <input type="checkbox" id="bulk-apply-fingerprint" class="sr-only peer">
@@ -3268,34 +3173,6 @@ const HTML_TEMPLATES = {
                 }
             }
         }
-        window.toggleBulkFragContainer = function(show) {
-            const wrapper = document.getElementById('bulk-frag-toggle-wrapper');
-            const inputs = document.getElementById('bulk-frag-inputs-container');
-            const enableToggle = document.getElementById('bulk-frag-enable-toggle');
-            if (wrapper && inputs) {
-                if (show) {
-                    wrapper.classList.remove('hidden');
-                    if (enableToggle && enableToggle.checked) {
-                        inputs.classList.remove('hidden');
-                    }
-                } else {
-                    wrapper.classList.add('hidden');
-                    inputs.classList.add('hidden');
-                }
-            }
-        };
-
-        window.toggleBulkFragInputs = function(show) {
-            const inputs = document.getElementById('bulk-frag-inputs-container');
-            if (inputs) {
-                if (show) {
-                    inputs.classList.remove('hidden');
-                } else {
-                    inputs.classList.add('hidden');
-                }
-            }
-        };
-
         function toggleBulkEditModal(show) {
             const modal = document.getElementById('bulk-edit-modal');
             const card = document.getElementById('bulk-edit-modal-card');
@@ -3310,7 +3187,6 @@ const HTML_TEMPLATES = {
                 card.classList.remove('opacity-100', 'scale-100');
                 card.classList.add('opacity-0', 'scale-95');
                 document.getElementById('bulk-edit-form').reset();
-                window.toggleBulkFragContainer(false);
             }
         }
         function bulkEdit() {
@@ -3338,11 +3214,7 @@ const HTML_TEMPLATES = {
             const tlsValue = checkedPorts.some(p => tlsPorts.includes(p)) ? 'on' : 'off';
             const applyIps = document.getElementById('bulk-apply-ips').checked;
             const ipsValue = document.getElementById('bulk-input-ips').value;
-			const applyFrag = document.getElementById('bulk-apply-frag').checked;
-            const isBulkFragEnabled = document.getElementById('bulk-frag-enable-toggle').checked;
-			const fragLenValue = isBulkFragEnabled ? (document.getElementById('bulk-input-frag-len').value || '20-30') : "";
-			const fragIntValue = isBulkFragEnabled ? (document.getElementById('bulk-input-frag-int').value || '1-2') : "";
-            if (!applyLimit && !applyExpiry && !applyReqLimit && !applyIpLimit && !applyFingerprint && !applyPorts && !applyIps && !applyFrag) {
+            if (!applyLimit && !applyExpiry && !applyReqLimit && !applyIpLimit && !applyFingerprint && !applyPorts && !applyIps) {
                 alert('⚠️ لطفا حداقل یک فیلد را برای اعمال تغییر انتخاب کنید!');
                 submitButton.disabled = false;
                 submitButton.innerText = 'ثبت تغییرات گروهی';
@@ -3361,8 +3233,6 @@ const HTML_TEMPLATES = {
                     const port = applyPorts ? portsValue : user.port;
                     const tls = applyPorts ? tlsValue : user.tls;
                     const ips = applyIps ? ipsValue : user.ips;
-					const frag_len = applyFrag ? fragLenValue : user.frag_len;
-					const frag_int = applyFrag ? fragIntValue : user.frag_int;
                     try {
                         const response = await fetch('/api/users/' + encodeURIComponent(uname), {
                             method: 'PUT',
@@ -3376,9 +3246,7 @@ const HTML_TEMPLATES = {
                                 port,
                                 ips,
                                 fingerprint,
-                                ip_limit: ipLimit,
-                                frag_len: frag_len,
-                                frag_int: frag_int
+                                ip_limit: ipLimit
                             })
                         });
                         if (response.ok) {
@@ -3398,6 +3266,8 @@ const HTML_TEMPLATES = {
                 submitButton.innerText = 'ثبت تغییرات گروهی';
             }
         }
+        window.globalFragLen = "20-30";
+        window.globalFragInt = "1-2";
         const tlsPorts = ['443', '2053', '2083', '2087', '2096', '8443'];
         const nonTlsPorts = ['80', '8080', '8880', '2052', '2082', '2086', '2095'];
         let isEditMode = false;
@@ -3448,17 +3318,6 @@ const HTML_TEMPLATES = {
                 card.classList.add('opacity-0', 'scale-95');
             }
         }
-        window.toggleFragInputs = function(show) {
-            const container = document.getElementById('frag-inputs-container');
-            if (container) {
-                if (show) {
-                    container.classList.remove('hidden');
-                } else {
-                    container.classList.add('hidden');
-                }
-            }
-        };
-
         function toggleModal(show) {
             const modal = document.getElementById('user-modal');
             const card = document.getElementById('user-modal-card');
@@ -3478,23 +3337,14 @@ const HTML_TEMPLATES = {
                 document.getElementById('submit-btn').innerText = 'ایجاد کاربر';
                 document.getElementById('input-name').disabled = false;
                 document.getElementById('create-user-form').reset();
+                // بازگردانی پورت‌های 443 و 80 به حالت پیش‌فرض
                 const cb443 = document.querySelector('input[name="ports"][value="443"]');
                 if (cb443) cb443.checked = true;
                 const cb80 = document.querySelector('input[name="ports"][value="80"]');
                 if (cb80) cb80.checked = true;
+                // بازگردانی اثر انگشت به iOS
                 const fpSelect = document.getElementById('fingerprint-select');
                 if (fpSelect) fpSelect.value = 'ios';
-                const bpCheck = document.getElementById('input-block-porn');
-                if (bpCheck) bpCheck.checked = false;
-                const baCheck = document.getElementById('input-block-ads');
-				if (baCheck) baCheck.checked = false;
-				const fragLenInput = document.getElementById('input-frag-len');
-				if (fragLenInput) fragLenInput.value = '20-30';
-				const fragIntInput = document.getElementById('input-frag-int');
-				if (fragIntInput) fragIntInput.value = '1-2';
-                const fragToggle = document.getElementById('input-frag-toggle');
-                if (fragToggle) fragToggle.checked = false;
-                window.toggleFragInputs(false);
             }
         }
 		function toggleUpdateModal(show, version = '') {
@@ -3522,15 +3372,13 @@ const HTML_TEMPLATES = {
             document.getElementById('submit-btn').innerText = 'ایجاد کاربر';
             document.getElementById('input-name').disabled = false;
             document.getElementById('create-user-form').reset();
+            // اطمینان از اعمال پیش‌فرض‌ها در زمان باز شدن فرم جدید
             const cb443 = document.querySelector('input[name="ports"][value="443"]');
             if (cb443) cb443.checked = true;
             const cb80 = document.querySelector('input[name="ports"][value="80"]');
             if (cb80) cb80.checked = true;
             const fpSelect = document.getElementById('fingerprint-select');
             if (fpSelect) fpSelect.value = 'ios';
-            const fragToggle = document.getElementById('input-frag-toggle');
-            if (fragToggle) fragToggle.checked = false;
-            window.toggleFragInputs(false);
             toggleModal(true);
         }
         const themeToggleBtn = document.getElementById('theme-toggle');
@@ -3990,11 +3838,6 @@ const HTML_TEMPLATES = {
             const reqLimit = document.getElementById('input-req-limit').value || null;
             const ipLimit = document.getElementById('input-ip-limit').value || null;
             const checkedPorts = Array.from(document.querySelectorAll('input[name="ports"]:checked')).map(cb => cb.value);
-            const block_porn = document.getElementById('input-block-porn').checked ? 1 : 0;
-            const block_ads = document.getElementById('input-block-ads').checked ? 1 : 0;
-            const isFragEnabled = document.getElementById('input-frag-toggle').checked;
-            const frag_len = isFragEnabled ? (document.getElementById('input-frag-len').value || "20-30") : "";
-            const frag_int = isFragEnabled ? (document.getElementById('input-frag-int').value || "1-2") : "";
             if (checkedPorts.length === 0) {
                 alert('⚠️ لطفا حداقل یک پورت را برای اتصال انتخاب کنید!');
                 submitButton.disabled = false;
@@ -4011,7 +3854,7 @@ const HTML_TEMPLATES = {
                 const response = await fetch(url, {
                     method: method,
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, limit_gb: limit, expiry_days: expiry, limit_req: reqLimit, tls, port, ips, fingerprint, ip_limit: ipLimit, block_porn: block_porn, block_ads: block_ads, frag_len: frag_len, frag_int: frag_int })
+					body: JSON.stringify({ username, limit_gb: limit, expiry_days: expiry, limit_req: reqLimit, tls, port, ips, fingerprint, ip_limit: ipLimit })
                 });
                 if (response.ok) {
                     toggleModal(false);
@@ -4062,7 +3905,7 @@ function closeFreePanelWarning() {
     card.classList.remove('opacity-100', 'scale-100');
     card.classList.add('opacity-0', 'scale-95');
 }
-function getVlessLink(username) {
+        function getVlessLink(username) {
             const user = window.allUsers.find(u => u.username === username);
             if (!user) return '';
             const host = window.location.hostname;
@@ -4073,18 +3916,13 @@ function getVlessLink(username) {
             }
             const ports = String(user.port || '443').split(',').map(p => p.trim()).filter(p => p.length > 0);
             const fp = user.fingerprint || 'chrome';
-            const userFrag = (user.frag_len && user.frag_int) ? '&fragment=' + user.frag_len + ',' + user.frag_int : '';
             const links = [];
-            const m1 = decodeURIComponent('%E2%9A%A0%EF%B8%8F%D8%A7%DB%8C%D9%86%20%D9%BE%D9%86%D9%84%20%D8%B1%D8%A7%DB%8C%DA%AF%D8%A7%D9%86%20%D9%88%20%D8%BA%DB%8C%D8%B1%20%D9%82%D8%A7%D8%A8%D9%84%20%D9%81%D8%B1%D9%88%D8%B4%20%D8%A7%D8%B3%D8%AA%E2%9A%A0%EF%B8%8F');
-            const m2 = decodeURIComponent('%E2%99%A8%EF%B8%8F%20%40IR_NETLIFY%20%D8%B3%D8%A7%D8%AE%D8%AA%20%D8%B1%D8%A7%DB%8C%DA%AF%D8%A7%D9%86%20%E2%99%A8%EF%B8%8F');
-            links.push('vle' + 'ss://' + (user.uuid || '') + '@0.0.0.0:1?encryption=none&security=none&type=ws&host=' + host + '&path=%2FIn_Panel_Rayeghan_Ast_Va_Gheyre_Ghabele_Foroosh#' + encodeURIComponent(m1));
-            links.push('vle' + 'ss://' + (user.uuid || '') + '@0.0.0.0:1?encryption=none&security=none&type=ws&host=' + host + '&path=%2FIn_Panel_Rayeghan_Ast_Va_Gheyre_Ghabele_Foroosh#' + encodeURIComponent(m2));
             ips.forEach((ip) => {
                 ports.forEach((portStr) => {
                     const isTlsPort = tlsPorts.includes(portStr);
                     const tlsVal = isTlsPort ? 'tls' : 'none';
-                    const remark = user.username + ' | \u200E' + ip + ' | \u200E' + portStr;
-                    links.push('vle' + 'ss://' + (user.uuid || '') + '@' + ip + ':' + portStr + '?path=%2FIn_Panel_Rayeghan_Ast_Va_Gheyre_Ghabele_Foroosh&security=' + tlsVal + '&encryption=none&insecure=0&host=' + host + '&fp=' + fp + '&type=ws&allowInsecure=0&sni=' + host + userFrag + '#' + encodeURIComponent(remark));
+                    const remark = user.username;
+                    links.push('vless://' + (user.uuid || '') + '@' + ip + ':' + portStr + '?encryption=none&security=' + tlsVal + '&sni=' + host + '&fp=' + fp + '&alpn=h3%2Ch2%2Chttp%2F1.1&insecure=0&allowInsecure=0&type=ws&host=' + host + '&path=%2Fhafa#' + encodeURIComponent(remark));
                 });
             });
             return links.join('\\n');
@@ -4163,7 +4001,6 @@ function editUser(encodedUsername) {
     editingUsername = username;
     document.getElementById('modal-title').innerText = 'ویرایش کاربر: ' + username;
     document.getElementById('submit-btn').innerText = 'ذخیره تغییرات';
-    
     const nameInput = document.getElementById('input-name');
     nameInput.value = username;
     nameInput.disabled = false;
@@ -4173,18 +4010,6 @@ function editUser(encodedUsername) {
     document.getElementById('input-ip-limit').value = user.ip_limit !== undefined ? (user.ip_limit || '') : (user.max_connections || '');
     document.getElementById('input-ips').value = user.ips || '';
     document.getElementById('fingerprint-select').value = user.fingerprint || 'chrome';
-    
-    document.getElementById('input-block-porn').checked = (user.block_porn === 1);
-    document.getElementById('input-block-ads').checked = (user.block_ads === 1);
-    
-    const hasFrag = Boolean(user.frag_len && user.frag_len !== "" && user.frag_int && user.frag_int !== "");
-    const fragToggle = document.getElementById('input-frag-toggle');
-    if (fragToggle) fragToggle.checked = hasFrag;
-    
-    document.getElementById('input-frag-len').value = hasFrag ? user.frag_len : '20-30';
-    document.getElementById('input-frag-int').value = hasFrag ? user.frag_int : '1-2';
-    window.toggleFragInputs(hasFrag);
-
     const userPorts = String(user.port || '').split(',').map(p => p.trim());
     document.querySelectorAll('input[name="ports"]').forEach(cb => {
         cb.checked = userPorts.includes(cb.value);
@@ -4230,94 +4055,93 @@ function editUser(encodedUsername) {
             });
             select.innerHTML = html;
         }
-async function loadLocations() {
-    const select = document.getElementById('location-select');
-    const cachedLocations = localStorage.getItem('cached_locations_list');
-    const cachedActiveIata = localStorage.getItem('cached_active_iata') || '';
-    let hasCachedLocs = false;
-    if (cachedLocations) {
-        try {
-            const parsedLocs = JSON.parse(cachedLocations);
-            if (Array.isArray(parsedLocs) && parsedLocs.length > 0) {
-                renderLocationsUI(parsedLocs, cachedActiveIata);
-                hasCachedLocs = true;
+        async function loadLocations() {
+            const select = document.getElementById('location-select');
+            const cachedLocations = localStorage.getItem('cached_locations_list');
+            const cachedActiveIata = localStorage.getItem('cached_active_iata') || '';
+            let hasCachedLocs = false;
+            if (cachedLocations) {
+                try {
+                    const parsedLocs = JSON.parse(cachedLocations);
+                    if (Array.isArray(parsedLocs) && parsedLocs.length > 0) {
+                        renderLocationsUI(parsedLocs, cachedActiveIata);
+                        hasCachedLocs = true;
+                    }
+                } catch(e) {}
             }
-        } catch(e) {}
-    }
-    try {
-        const statusRes = await fetch('/api/proxy-ip');
-        let activeIata = '';
-        if (statusRes.ok) {
-            const statusData = await statusRes.json();
-            activeIata = statusData.iata || '';
-            localStorage.setItem('cached_active_iata', activeIata);
-            const customInput = document.getElementById('custom-proxy-input');
-            if (customInput) {
-                if (!activeIata && statusData.proxy_ip && statusData.proxy_ip !== 'proxyip.cmliussss.net') {
-                    customInput.value = statusData.proxy_ip;
-                } else {
-                    customInput.value = '';
-                }
-            }
-        }
-        const res = await fetch('/locations');
-        if (!res.ok) throw new Error();
-        const locations = await res.json();
-        localStorage.setItem('cached_locations_list', JSON.stringify(locations));
-        renderLocationsUI(locations, activeIata);
-    } catch (err) {
-        if (!hasCachedLocs) {
-            select.innerHTML = '<option value="">⚠️ خطا در دریافت لوکیشن‌ها</option>';
-        }
-    }
-}
-async function saveSettings() {
-    const select = document.getElementById('location-select');
-    const customInput = document.getElementById('custom-proxy-input');
-    const customProxy = customInput ? customInput.value.trim() : '';
-    let iata = select.value;
-    const btn = document.getElementById('save-settings-btn');
-    btn.disabled = true;
-    btn.innerText = 'در حال ذخیره...';
-    try {
-        let resolvedIp = 'proxyip.cmliussss.net';
-        if (customProxy) {
-            resolvedIp = customProxy;
-            iata = '';
-        } else if (iata) {
-            const domain = iata.toLowerCase() + '.proxyip.cmliussss.net';
-            const dnsRes = await fetch('https://cloudflare-dns.com/dns-query?name=' + domain + '&type=A', {
-                headers: { 'accept': 'application/dns-json' }
-            });
-            resolvedIp = domain;
-            if (dnsRes.ok) {
-                const dnsData = await dnsRes.json();
-                if (dnsData.Answer && dnsData.Answer.length > 0) {
-                    const ips = dnsData.Answer.filter(ans => ans.type === 1).map(ans => ans.data);
-                    if (ips.length > 0) {
-                        resolvedIp = ips[Math.floor(Math.random() * ips.length)];
+            try {
+                const statusRes = await fetch('/api/proxy-ip');
+                let activeIata = '';
+                if (statusRes.ok) {
+                    const statusData = await statusRes.json();
+                    activeIata = statusData.iata || '';
+                    localStorage.setItem('cached_active_iata', activeIata);
+                    if(statusData.frag_len) {
+                        window.globalFragLen = statusData.frag_len;
+                        document.getElementById('frag-length').value = statusData.frag_len;
+                    }
+                    if(statusData.frag_int) {
+                        window.globalFragInt = statusData.frag_int;
+                        document.getElementById('frag-interval').value = statusData.frag_int;
                     }
                 }
+                const res = await fetch('/locations');
+                if (!res.ok) throw new Error();
+                const locations = await res.json();
+                localStorage.setItem('cached_locations_list', JSON.stringify(locations));
+                renderLocationsUI(locations, activeIata);
+            } catch (err) {
+                if (!hasCachedLocs) {
+                    select.innerHTML = '<option value="">⚠️ خطا در دریافت لوکیشن‌ها</option>';
+                }
             }
         }
-        const response = await fetch('/api/proxy-ip', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ proxy_ip: resolvedIp, iata: iata ? iata.toUpperCase() : '' })
-        });
-        if (response.ok) {
-            alert('✅ تنظیمات با موفقیت ذخیره شد.\\n' + (customProxy ? 'آی‌پی اختصاصی سرور: ' + resolvedIp : (iata ? 'آی‌پی پروکسی کلودفلر: ' + resolvedIp : 'آدرس پروکسی به حالت پیش‌فرض بازگشت.')));
-            toggleSettingsModal(false);
-        } else {
-            alert('خطا در ذخیره تنظیمات');
+        async function saveSettings() {
+            const select = document.getElementById('location-select');
+            const fragLen = document.getElementById('frag-length').value || "20-30";
+            const fragInt = document.getElementById('frag-interval').value || "1-2";
+            const iata = select.value;
+            const btn = document.getElementById('save-settings-btn');
+            btn.disabled = true;
+            btn.innerText = 'در حال ذخیره...';
+            try {
+                let resolvedIp = 'proxyip.cmliussss.net';
+                if (iata) {
+                    const domain = iata.toLowerCase() + '.proxyip.cmliussss.net';
+                    const dnsRes = await fetch('https://cloudflare-dns.com/dns-query?name=' + domain + '&type=A', {
+                        headers: { 'accept': 'application/dns-json' }
+                    });
+                    resolvedIp = domain;
+                    if (dnsRes.ok) {
+                        const dnsData = await dnsRes.json();
+                        if (dnsData.Answer && dnsData.Answer.length > 0) {
+                            const ips = dnsData.Answer.filter(ans => ans.type === 1).map(ans => ans.data);
+                            if (ips.length > 0) {
+                                resolvedIp = ips[Math.floor(Math.random() * ips.length)];
+                            }
+                        }
+                    }
+                }
+                const response = await fetch('/api/proxy-ip', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ proxy_ip: resolvedIp, iata: iata ? iata.toUpperCase() : '', frag_len: fragLen, frag_int: fragInt })
+                });
+                if (response.ok) {
+                    window.globalFragLen = fragLen;
+                    window.globalFragInt = fragInt;
+                    alert('✅ تنظیمات با موفقیت ذخیره شد.\\n' + (iata ? 'آی‌پی پروکسی کلودفلر: ' + resolvedIp : 'آدرس پروکسی به حالت پیش‌فرض بازگشت.'));
+                    toggleSettingsModal(false);
+                } else {
+                    alert('خطا در ذخیره تنظیمات');
+                }
+            } catch (err) {
+                alert('خطا در برقراری ارتباط با سرور');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'ذخیره تنظیمات';
+            }
         }
-    } catch (err) {
-        alert('خطا در برقراری ارتباط با سرور');
-    } finally {
-        btn.disabled = false;
-        btn.innerText = 'ذخیره تنظیمات';
-    }
-}
         function exportUsersBackup() {
             if (!window.allUsers || window.allUsers.length === 0) {
                 alert('⚠️ کاربری برای پشتیبان‌گیری وجود ندارد!');
@@ -4374,7 +4198,9 @@ async function saveSettings() {
                         if (exists) {
                             if (overwrite) {
                                 try {
+                                    // Delete first
                                     await fetch('/api/users/' + encodeURIComponent(u.username), { method: 'DELETE' });
+                                    // Post
                                     const res = await fetch('/api/users', {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' },
@@ -4392,11 +4218,7 @@ async function saveSettings() {
                                             used_gb: u.used_gb,
                                             used_req: u.used_req,
                                             created_at: u.created_at,
-                                            is_active: u.is_active,
-                                            block_porn: u.block_porn,
-                                            block_ads: u.block_ads,
-                                            frag_len: u.frag_len,
-                                            frag_int: u.frag_int
+                                            is_active: u.is_active
                                         })
                                     });
                                     if (res.ok) successCount++;
@@ -4421,11 +4243,7 @@ async function saveSettings() {
                                         used_gb: u.used_gb,
                                         used_req: u.used_req,
                                         created_at: u.created_at,
-                                        is_active: u.is_active,
-                                        block_porn: u.block_porn,
-                                        block_ads: u.block_ads,
-                                        frag_len: u.frag_len,
-                                        frag_int: u.frag_int
+                                        is_active: u.is_active
                                     })
                                 });
                                 if (res.ok) successCount++;
@@ -4493,14 +4311,14 @@ async function saveSettings() {
                 window.location.reload();
             }
         }
-const CURRENT_VERSION = '1.6.1';
+const CURRENT_VERSION = '1.5.10';
 const UPDATE_FIX = "constsCURRENT_VERSION='d.d.d'";
 		async function checkForUpdates(isManual = false) {
             try {
                 if (isManual) {
                     document.getElementById('update-toggle').classList.add('animate-pulse');
                 }
-                const res = await fetch('https://raw.githubusercontent.com/IR-NETLIFY/zeus/refs/heads/main/zeus.js?t=' + Date.now());
+                const res = await fetch('https://raw.githubusercontent.com/hafacompany/hafaze/main/zeus.js?t=' + Date.now());
                 if (!res.ok) throw new Error('Network response was not ok');
                 const text = await res.text();
                 const match = text.match(/const\\s+CURRENT_VERSION\\s*=\\s*['"](\\d+\\.\\d+\\.\\d+)['"]/i);
@@ -4597,7 +4415,7 @@ const UPDATE_FIX = "constsCURRENT_VERSION='d.d.d'";
 let cachedIpsData = {};
 async function fetchIpsList() {
     try {
-        const response = await fetch('https://raw.githubusercontent.com/IR-NETLIFY/zeus/refs/heads/main/ips.txt');
+        const response = await fetch('https://raw.githubusercontent.com/hafacompany/hafaze/main/ips.txt');
         if (!response.ok) throw new Error('Fetch failed');
         const text = await response.text();
         const blocks = text.split('----------');
@@ -4691,7 +4509,7 @@ document.addEventListener('DOMContentLoaded', () => {
             freeModal.classList.add('opacity-100', 'pointer-events-auto');
             freeCard.classList.remove('opacity-0', 'scale-95');
             freeCard.classList.add('opacity-100', 'scale-100');
-            if (localStorage.getItem('zeus_path_warned_' + CURRENT_VERSION) !== 'true') {
+            if (false) {
                 const modal = document.getElementById('path-warning-modal');
                 const card = modal.querySelector('div');
                 modal.classList.remove('opacity-0', 'pointer-events-none');
@@ -4704,32 +4522,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderPortCheckboxes();
             loadUsers();
             loadLocations();
-            
-            window.usersRefreshIntervalId = null;
-            
-            window.startRefreshInterval = function(intervalMs) {
-                if (window.usersRefreshIntervalId) {
-                    clearInterval(window.usersRefreshIntervalId);
-                }
-                window.usersRefreshIntervalId = setInterval(() => loadUsers(true), intervalMs);
-            };
-
-            window.changeRefreshRate = function(val) {
-                const ms = parseInt(val, 10);
-                localStorage.setItem('zeus_refresh_rate', ms);
-                window.startRefreshInterval(ms);
-                showToast('نرخ رفرش پنل تغییر کرد');
-            };
-
-            const savedRate = localStorage.getItem('zeus_refresh_rate');
-            const initialRate = savedRate ? parseInt(savedRate, 10) : 2000;
-            const selectEl = document.getElementById('refresh-rate-select');
-            if (selectEl) {
-                selectEl.value = String(initialRate);
-            }
-            
-            window.startRefreshInterval(initialRate);
-
+            setInterval(() => loadUsers(true), 2000);
             setTimeout(() => checkForUpdates(false), 2000);
             setInterval(() => checkForUpdates(false), 60000);
         });
@@ -4774,7 +4567,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="inline-block p-3.5 bg-blue-600/10 text-blue-500 rounded-3xl mb-3 border border-blue-500/20 shadow-lg shadow-blue-500/5">
                 <svg class="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
             </div>
-            <h1 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white mb-1">پنل زئوس - وضعیت اشتراک</h1>
+            <h1 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white mb-1">پنل حافا - وضعیت اشتراک</h1>
             <p id="display-username" class="text-sm font-bold text-blue-500 tracking-wide font-mono mb-2"></p>
             <div id="live-connections-badge" class="hidden inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-full text-xs font-bold shadow-sm">
                 <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -4887,34 +4680,34 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 <div class="flex flex-col gap-4 mt-6 z-10">
     <div class="flex items-center gap-4 justify-center">
-        <a href="https://github.com/IR-NETLIFY/zeus" target="_blank" class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-amoled-card border border-gray-200 dark:border-amoled-border rounded-full shadow-sm hover:shadow-md transition text-sm font-bold text-gray-700 dark:text-zinc-300 hover:text-black dark:hover:text-white group">
+        <a href="https://www.yahoo.com" target="_blank" class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-amoled-card border border-gray-200 dark:border-amoled-border rounded-full shadow-sm hover:shadow-md transition text-sm font-bold text-gray-700 dark:text-zinc-300 hover:text-black dark:hover:text-white group">
             <svg class="w-5 h-5 group-hover:scale-110 transition" viewBox="0 0 24 24" fill="currentColor">
                 <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0012 2z"/>
             </svg>
             گیت‌هاب
         </a>
 
-        <a href="https://t.me/IR_NETLIFY" target="_blank" class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-amoled-card border border-gray-200 dark:border-amoled-border rounded-full shadow-sm hover:shadow-md transition text-sm font-bold text-gray-700 dark:text-zinc-300 hover:text-sky-500 dark:hover:text-sky-400 group">
+        <a href="https://www.google.com" target="_blank" class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-amoled-card border border-gray-200 dark:border-amoled-border rounded-full shadow-sm hover:shadow-md transition text-sm font-bold text-gray-700 dark:text-zinc-300 hover:text-sky-500 dark:hover:text-sky-400 group">
             <svg class="w-5 h-5 text-sky-500 group-hover:scale-110 transition" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.94-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.37.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .24z"/>
             </svg>
-            IR_NETLIFY@
+            ♥HAFA♥
         </a>
     </div>
 	
     <div class="flex items-center gap-4 justify-center">
-        <a href="https://zeus-panel.ir-netlify.workers.dev/" target="_blank" class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-amoled-card border border-gray-200 dark:border-amoled-border rounded-full shadow-sm hover:shadow-md transition text-sm font-bold text-amber-600 dark:text-amber-400 hover:text-amber-500 dark:hover:text-amber-300 group">
+        <a href="https://google.com/" target="_blank" class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-amoled-card border border-gray-200 dark:border-amoled-border rounded-full shadow-sm hover:shadow-md transition text-sm font-bold text-amber-600 dark:text-amber-400 hover:text-amber-500 dark:hover:text-amber-300 group">
             <svg class="w-5 h-5 text-amber-500 dark:text-amber-400 group-hover:scale-110 transition" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
             </svg>
-            ساخت رایگان پنل
+            ♥HAFA♥
         </a>
 
-        <a href="https://donatonion.ir-netlify.workers.dev" target="_blank" class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-amoled-card border border-gray-200 dark:border-amoled-border rounded-full shadow-sm hover:shadow-md transition text-sm font-bold text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300 group">
+        <a href="https://google.com" target="_blank" class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-amoled-card border border-gray-200 dark:border-amoled-border rounded-full shadow-sm hover:shadow-md transition text-sm font-bold text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300 group">
             <svg class="w-5 h-5 text-red-500 dark:text-red-400 group-hover:scale-110 transition" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3 9.24 3 10.91 3.81 12 5.08 13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
             </svg>
-            دونیت
+            ♥HAFA♥
         </a>
     </div>
 </div>
@@ -4933,14 +4726,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             var ports = String(u.port || '443').split(',').map(function(p) { return p.trim(); }).filter(function(p) { return p.length > 0; });
             var fp = u.fingerprint || 'chrome';
-            const userFrag = (u.frag_len && u.frag_int) ? '&fragment=' + u.frag_len + ',' + u.frag_int : '';
             var links = [];
             ips.forEach(function(ip, ipIndex) {
                 ports.forEach(function(portStr) {
                     var isTlsPort = ['443', '2053', '2083', '2087', '2096', '8443'].includes(portStr);
                     var tlsVal = isTlsPort ? 'tls' : 'none';
-                    var remark = ips.length > 1 ? (u.username + '-' + (ipIndex + 1) + '-' + portStr) : (u.username + '-' + portStr);
-                    links.push('vle' + 'ss://' + (u.uuid || '') + '@' + ip + ':' + portStr + '?path=%2FIn_Panel_Rayeghan_Ast_Va_Gheyre_Ghabele_Foroosh&security=' + tlsVal + '&encryption=none&insecure=0&host=' + host + '&fp=' + fp + '&type=ws&allowInsecure=0&sni=' + host + userFrag + '#' + encodeURIComponent(remark));
+                    var remark = u.username;
+                    links.push('vle' + 'ss://' + (u.uuid || '') + '@' + ip + ':' + portStr + '?path=%2Fhafa&security=' + tlsVal + '&encryption=none&insecure=0&host=' + host + '&fp=' + fp + '&alpn=h3%2Ch2%2Chttp%2F1.1&type=ws&allowInsecure=0&sni=' + host + '#' + encodeURIComponent(remark));
                 });
             });
             return links.join('\\n');

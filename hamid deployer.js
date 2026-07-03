@@ -26,7 +26,7 @@ export default {
 				if (subData.success && subData.result && subData.result.subdomain) {
 					devSub = subData.result.subdomain;
 				} else {
-					const newSub = `zeus-${Math.random().toString(36).substring(2, 8)}`;
+					const newSub = `hafa-${Math.random().toString(36).substring(2, 8)}`;
 					const createSub = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/subdomain`, {
 						method: "PUT",
 						headers,
@@ -40,8 +40,8 @@ export default {
 					devSub = newSub;
 				}
 				const uniqueSuffix = Math.random().toString(36).substring(2, 8);
-				const workerName = `zeus-panel-${uniqueSuffix}`;
-				const dbName = `zeus-db-${uniqueSuffix}`;
+				const workerName = `hafa-panel-${uniqueSuffix}`;
+				const dbName = `hafa-db-${uniqueSuffix}`;
 				const dbRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database`, {
 					method: "POST",
 					headers,
@@ -54,11 +54,11 @@ export default {
 				}
 				const dbUuid = dbData.result.uuid;
 				await new Promise((resolve) => setTimeout(resolve, 1000));
-				const githubRes = await fetch("https://raw.githubusercontent.com/IR-NETLIFY/zeus/refs/heads/main/zeus.js?t=" + Date.now());
+				const githubRes = await fetch("https://raw.githubusercontent.com/hafacompany/hamidprogeramer/refs/heads/main/hamid.js?t=" + Date.now());
 				if (!githubRes.ok) throw new Error("خطا در دریافت سورس از گیت‌هاب.");
-				const zeusCode = await githubRes.text();
+				const hafaCode = await githubRes.text();
 				const metadata = {
-					main_module: "zeus.js",
+					main_module: "hafa.js",
 					compatibility_date: "2024-02-08",
 					bindings: [
 						{ type: "d1", name: "DB", id: dbUuid },
@@ -68,7 +68,7 @@ export default {
 				};
 				const formData = new FormData();
 				formData.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
-				formData.append("zeus.js", new Blob([zeusCode], { type: "application/javascript+module" }), "zeus.js");
+				formData.append("hafa.js", new Blob([hafaCode], { type: "application/javascript+module" }), "hafa.js");
 				const deployRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${workerName}`, {
 					method: "PUT",
 					headers: { Authorization: `Bearer ${token}` },
@@ -120,13 +120,13 @@ export default {
 				}
 				let panels = [];
 				for (let script of scriptsData.result) {
-					if (script.id.startsWith("zeus-panel") || script.id.startsWith("ez-")) {
+					if (script.id.startsWith("hafa-panel") || script.id.startsWith("ez-")) {
 						panels.push({ name: script.id });
 					}
 				}
 				let latestVersion = "Unknown";
 				try {
-					const ghRes = await fetch("https://raw.githubusercontent.com/IR-NETLIFY/zeus/main/zeus.js?t=" + Date.now());
+					const ghRes = await fetch("https://raw.githubusercontent.com/hafacompany/hamidprogeramer/refs/heads/main/hamid.js?t=" + Date.now());
 					if (ghRes.ok) {
 						const ghText = await ghRes.text();
 						const match = ghText.match(/CURRENT_VERSION\s*=\s*['"]([0-9\.]+)['"]/i);
@@ -181,7 +181,7 @@ export default {
 					throw new Error("Account not found");
 				}
 				const accountId = accData.result[0].id;
-				const githubRes = await fetch("https://raw.githubusercontent.com/IR-NETLIFY/zeus/refs/heads/main/zeus.js?t=" + Date.now());
+				const githubRes = await fetch("https://raw.githubusercontent.com/hafacompany/hamidprogeramer/refs/heads/main/hamid.js?t=" + Date.now());
 				if (!githubRes.ok) throw new Error("Failed to fetch source from GitHub");
 				const newCode = await githubRes.text();
 				const bindingsRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}/bindings`, { headers });
@@ -198,13 +198,13 @@ export default {
 					}
 				}
 				const metadata = {
-					main_module: "zeus.js",
+					main_module: "hafa.js",
 					compatibility_date: "2024-02-08",
 					bindings: newBindings,
 				};
 				const formData = new FormData();
 				formData.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
-				formData.append("zeus.js", new Blob([newCode], { type: "application/javascript+module" }), "zeus.js");
+				formData.append("hafa.js", new Blob([newCode], { type: "application/javascript+module" }), "hafa.js");
 				const deployRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}`, {
 					method: "PUT",
 					headers: { Authorization: `Bearer ${token}` },
@@ -254,7 +254,7 @@ if (request.method === "POST" && url.pathname === "/api/reset-password") {
 		if (!queryData.success) {
 			throw new Error("Database query failed");
 		}
-		const githubRes = await fetch("https://raw.githubusercontent.com/IR-NETLIFY/zeus/refs/heads/main/zeus.js?t=" + Date.now());
+		const githubRes = await fetch("https://raw.githubusercontent.com/hafacompany/hamidprogeramer/refs/heads/main/hamid.js?t=" + Date.now());
 		if (!githubRes.ok) throw new Error("Failed to fetch source from GitHub");
 		const newCode = await githubRes.text();
 		const newBindings = [];
@@ -274,13 +274,13 @@ if (request.method === "POST" && url.pathname === "/api/reset-password") {
 			newBindings.push({ type: "secret_text", name: "CF_ACCOUNT_ID", text: accountId });
 		}
 		const metadata = {
-			main_module: "zeus.js",
+			main_module: "hafa.js",
 			compatibility_date: "2024-02-08",
 			bindings: newBindings,
 		};
 		const formData = new FormData();
 		formData.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
-		formData.append("zeus.js", new Blob([newCode], { type: "application/javascript+module" }), "zeus.js");
+		formData.append("hafa.js", new Blob([newCode], { type: "application/javascript+module" }), "hafa.js");
 		const deployRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}`, {
 			method: "PUT",
 			headers: { Authorization: `Bearer ${token}` },
@@ -343,7 +343,7 @@ function getHtmlContent() {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zeus Panel Deployer</title>
+    <title>Hafa Panel Deployer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     <script>
@@ -378,12 +378,12 @@ function getHtmlContent() {
                 <div class="inline-flex items-center justify-center p-3 bg-blue-950/60 border border-blue-500 text-blue-400 rounded-2xl mb-4 shadow-[0_0_15px_rgba(59,130,246,0.4)]">
                     <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                 </div>
-            <h2 class="text-2xl font-black text-gray-900 dark:text-white mb-2">Zeus Auto Deployer</h2>
+            <h2 class="text-2xl font-black text-gray-900 dark:text-white mb-2">Hafa Auto Deployer</h2>
             <p class="text-sm font-medium text-gray-500 dark:text-zinc-400">نصب خودکار پنل زئوس روی کلودفلر</p>
 			<p class="text-sm font-medium text-gray-500 dark:text-zinc-400">🔥  روزانه 10 الی 100 گیگ کانفیگ رایگان  🔥</p>
         </div>
         <div class="space-y-5 relative z-10">
-            <a href="https://dash.cloudflare.com/profile/api-tokens?permissionGroupKeys=%5B%7B%22key%22%3A%22workers_scripts%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22workers_kv_storage%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22d1%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22account_settings%22%2C%22type%22%3A%22read%22%7D%2C%7B%22key%22%3A%22workers_subdomain%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22account_analytics%22%2C%22type%22%3A%22read%22%7D%5D&accountId=*&zoneId=all&name=Zeus-Deployer-Token" target="_blank" class="flex items-center justify-center w-full py-3.5 border border-orange-700 text-orange-500 bg-orange-900/20 hover:bg-orange-900/40 font-bold rounded-xl text-sm transition duration-300 shadow-sm">
+            <a href="https://dash.cloudflare.com/profile/api-tokens?permissionGroupKeys=%5B%7B%22key%22%3A%22workers_scripts%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22workers_kv_storage%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22d1%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22account_settings%22%2C%22type%22%3A%22read%22%7D%2C%7B%22key%22%3A%22workers_subdomain%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22account_analytics%22%2C%22type%22%3A%22read%22%7D%5D&accountId=*&zoneId=all&name=hafa-Deployer-Token" target="_blank" class="flex items-center justify-center w-full py-3.5 border border-orange-700 text-orange-500 bg-orange-900/20 hover:bg-orange-900/40 font-bold rounded-xl text-sm transition duration-300 shadow-sm">
                 دریافت توکن کلودفلر
             </a>
 <div class="mt-2 text-center mb-4">
@@ -421,7 +421,7 @@ function getHtmlContent() {
     </div>
 <div class="flex flex-col gap-4 mt-6 z-10">
     <div class="flex items-center gap-4 justify-center">
-        <a href="https://github.com/IR-NETLIFY/zeus" target="_blank" class="flex items-center gap-2 px-4 py-2 border border-gray-700 text-gray-500 bg-gray-900/20 hover:bg-gray-900/40 rounded-full shadow-sm hover:shadow-md transition text-sm font-bold group">
+        <a href="https://github.com/IR-NETLIFY/hafa" target="_blank" class="flex items-center gap-2 px-4 py-2 border border-gray-700 text-gray-500 bg-gray-900/20 hover:bg-gray-900/40 rounded-full shadow-sm hover:shadow-md transition text-sm font-bold group">
             <svg class="w-5 h-5 group-hover:scale-110 transition" viewBox="0 0 24 24" fill="currentColor">
                 <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0012 2z"/>
             </svg>
@@ -435,7 +435,7 @@ function getHtmlContent() {
         </a>
     </div>
     <div class="flex items-center gap-4 justify-center">
-        <a href="https://zeus-panel.ir-netlify.workers.dev/" target="_blank" class="flex items-center gap-2 px-4 py-2 border border-amber-700 text-amber-500 bg-amber-900/20 hover:bg-amber-900/40 rounded-full shadow-sm hover:shadow-md transition text-sm font-bold group">
+        <a href="https://hafa-panel.ir-netlify.workers.dev/" target="_blank" class="flex items-center gap-2 px-4 py-2 border border-amber-700 text-amber-500 bg-amber-900/20 hover:bg-amber-900/40 rounded-full shadow-sm hover:shadow-md transition text-sm font-bold group">
             <svg class="w-5 h-5 group-hover:scale-110 transition" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
             </svg>
@@ -632,7 +632,7 @@ async function fetchPanelVersion(token, scriptName, latestVersion, devSub) {
 			if (isLatest) {
 				buttonsHtml += '<button disabled class="flex-1 px-4 py-1.5 border border-emerald-700 text-emerald-500 bg-emerald-900/20 font-bold rounded-xl text-[11px] cursor-not-allowed shadow-sm">آپدیت شده ✓</button>';
 			} else {
-				buttonsHtml += '<button data-name="' + scriptName + '" onclick="updateZeusPanel(this.dataset.name)" class="flex-1 px-4 py-1.5 border border-purple-700 text-purple-500 bg-purple-900/20 hover:bg-purple-900/40 font-bold rounded-xl text-[11px] transition shadow-sm">آپدیت پنل</button>';
+				buttonsHtml += '<button data-name="' + scriptName + '" onclick="updatehafaPanel(this.dataset.name)" class="flex-1 px-4 py-1.5 border border-purple-700 text-purple-500 bg-purple-900/20 hover:bg-purple-900/40 font-bold rounded-xl text-[11px] transition shadow-sm">آپدیت پنل</button>';
 			}
 			if (devSub) {
 				buttonsHtml += '<a href="' + panelUrl + '" target="_blank" class="flex-1 px-4 py-1.5 border border-blue-700 text-blue-500 bg-blue-900/20 hover:bg-blue-900/40 font-bold rounded-xl text-[11px] transition shadow-sm flex items-center justify-center">ورود به پنل</a>';
@@ -642,10 +642,10 @@ async function fetchPanelVersion(token, scriptName, latestVersion, devSub) {
 			buttonsHtml += '</div>';
 			buttonsHtml += '<div class="flex gap-2">';
 			buttonsHtml += '<button data-name="' + scriptName + '" onclick="resetPanelPassword(this.dataset.name)" class="flex-1 px-5 py-1.5 border border-yellow-700 text-yellow-500 bg-yellow-900/20 hover:bg-yellow-900/40 font-bold rounded-xl text-[11px] transition shadow-sm whitespace-nowrap min-w-[110px]">بازیابی رمز</button>';
-			buttonsHtml += '<button data-name="' + scriptName + '" onclick="reloadZeusPanel(this.dataset.name)" class="flex-1 px-5 py-1.5 border border-cyan-700 text-cyan-500 bg-cyan-900/20 hover:bg-cyan-900/40 font-bold rounded-xl text-[11px] transition shadow-sm whitespace-nowrap min-w-[110px]">ری استارت</button>';
+			buttonsHtml += '<button data-name="' + scriptName + '" onclick="reloadhafaPanel(this.dataset.name)" class="flex-1 px-5 py-1.5 border border-cyan-700 text-cyan-500 bg-cyan-900/20 hover:bg-cyan-900/40 font-bold rounded-xl text-[11px] transition shadow-sm whitespace-nowrap min-w-[110px]">ری استارت</button>';
 			buttonsHtml += '</div>';
 			buttonsHtml += '<div class="flex gap-2">';
-			buttonsHtml += '<button data-name="' + scriptName + '" onclick="deleteZeusPanel(this.dataset.name)" class="flex-1 px-5 py-1.5 border border-red-700 text-red-500 bg-red-900/20 hover:bg-red-900/40 font-bold rounded-xl text-[11px] transition shadow-sm whitespace-nowrap min-w-[110px]">حذف پنل</button>';
+			buttonsHtml += '<button data-name="' + scriptName + '" onclick="deletehafaPanel(this.dataset.name)" class="flex-1 px-5 py-1.5 border border-red-700 text-red-500 bg-red-900/20 hover:bg-red-900/40 font-bold rounded-xl text-[11px] transition shadow-sm whitespace-nowrap min-w-[110px]">حذف پنل</button>';
 			buttonsHtml += '</div></div>';
 			btnContainer.innerHTML = buttonsHtml;
 
@@ -658,7 +658,7 @@ async function fetchPanelVersion(token, scriptName, latestVersion, devSub) {
         }
     }
 }
-async function updateZeusPanel(scriptName) {
+async function updatehafaPanel(scriptName) {
     const token = document.getElementById('updateApiToken').value.trim();
     if (!(await customConfirm('آیا از آپدیت پنل ' + scriptName + ' مطمئن هستید؟'))) return;
     showToast('در حال آپدیت ' + scriptName + '...');
@@ -679,7 +679,7 @@ async function updateZeusPanel(scriptName) {
         showToast('خطا: ' + e.message, 'error');
     }
 }
-async function deleteZeusPanel(scriptName) {
+async function deletehafaPanel(scriptName) {
     const token = document.getElementById('updateApiToken').value.trim();
     if (!(await customConfirm('آیا از حذف پنل ' + scriptName + ' مطمئن هستید؟'))) return;
     showToast('در حال حذف ' + scriptName + '...');
@@ -721,7 +721,7 @@ async function resetPanelPassword(scriptName) {
         showToast('خطا: ' + e.message, 'error');
     }
 }
-async function reloadZeusPanel(scriptName) {
+async function reloadhafaPanel(scriptName) {
     const token = document.getElementById('updateApiToken').value.trim();
     if (!(await customConfirm('آیا پنل مجدداً دیپلوی شود؟ کاربران شما باقی می‌مانند.'))) return;
     showToast('در حال ریلود پنل ' + scriptName + '...');
@@ -880,7 +880,7 @@ async function reloadZeusPanel(scriptName) {
             </button>
         </div>
         <div class="space-y-4 shrink-0">
-            <a href="https://dash.cloudflare.com/profile/api-tokens?permissionGroupKeys=%5B%7B%22key%22%3A%22workers_scripts%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22workers_kv_storage%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22d1%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22account_settings%22%2C%22type%22%3A%22read%22%7D%2C%7B%22key%22%3A%22workers_subdomain%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22account_analytics%22%2C%22type%22%3A%22read%22%7D%5D&accountId=*&zoneId=all&name=Zeus-Deployer-Token" target="_blank" class="flex items-center justify-center w-full py-2.5 border border-orange-700 text-orange-500 bg-orange-900/20 hover:bg-orange-900/40 font-bold rounded-xl text-sm transition duration-300 shadow-sm">
+            <a href="https://dash.cloudflare.com/profile/api-tokens?permissionGroupKeys=%5B%7B%22key%22%3A%22workers_scripts%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22workers_kv_storage%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22d1%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22account_settings%22%2C%22type%22%3A%22read%22%7D%2C%7B%22key%22%3A%22workers_subdomain%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22account_analytics%22%2C%22type%22%3A%22read%22%7D%5D&accountId=*&zoneId=all&name=hafa-Deployer-Token" target="_blank" class="flex items-center justify-center w-full py-2.5 border border-orange-700 text-orange-500 bg-orange-900/20 hover:bg-orange-900/40 font-bold rounded-xl text-sm transition duration-300 shadow-sm">
                 دریافت توکن کلودفلر
             </a>
 <div class="mt-2 text-center mb-4">
