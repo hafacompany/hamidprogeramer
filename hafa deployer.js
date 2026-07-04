@@ -751,7 +751,7 @@ async function reloadhafaPanel(scriptName) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token })
                 });
-                statusText.innerText = 'در حال دریافت پنل زئوس...';
+                statusText.innerText = 'در حال دریافت پنل حافا...';
                 statusPct.innerText = '۷۵٪';
                 progressBar.style.width = '75%';
                 await sleep(600);
